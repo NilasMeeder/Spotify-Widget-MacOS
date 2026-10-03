@@ -2,9 +2,9 @@
 
 # ◈ Spotify Widget
 
-**A native macOS menu bar app and Desktop/Notification Center widget for Spotify.**
+**A native macOS widget, menu bar player, and notch player for Spotify.**
 
-Now-playing artwork as the backdrop, sliding track titles, playback controls, and Liked Songs — right on your desktop.
+Now-playing artwork as the backdrop, sliding track titles, playback controls, and Liked Songs: on your desktop, in your menu bar, or dropping out of your MacBook's notch.
 
 [![Platform](https://img.shields.io/badge/platform-macOS%2014%2B-1ED760?style=flat-square&logo=apple&logoColor=white)](#requirements)
 [![Swift](https://img.shields.io/badge/Swift-5-1ED760?style=flat-square&logo=swift&logoColor=white)](#requirements)
@@ -14,30 +14,20 @@ Now-playing artwork as the backdrop, sliding track titles, playback controls, an
 
 <br>
 
-```
-┌──────────────────────────────────────────┐
-│  ⊕                                ⏮  ⏸  ⏭  │
-│                                            │
-│  Midnight City                            │
-│  M83                                      │
-│  ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭▭  │
-└──────────────────────────────────────────┘
-```
-
-<br>
-
 ## What it is
 
-Spotify Widget is a lightweight, menu-bar-only macOS app (no Dock icon) built with SwiftUI and WidgetKit. It drives Spotify's desktop app directly, so a WidgetKit widget can show what's playing in Notification Center or on the desktop — with live artwork, a sliding-text now-playing display, playback controls, a progress bar, and a Liked Songs heart, all synced through an App Group with the main app.
+Spotify Widget is a lightweight, menu-bar-only macOS app (no Dock icon) built with SwiftUI and WidgetKit. It drives Spotify's desktop app directly, so a widget can show what's playing on the desktop or in Notification Center. The same controls are available from the menu bar or the notch.
 
 **Features**
 
-- 🎧 Small and medium desktop/Notification Center widgets, backed by the current track's artwork
-- ⏯ Play/pause, skip forward, and skip back — from the widget or the menu bar
-- ❤️ Save or remove the current track from Liked Songs, via Spotify's Web API (PKCE sign-in, no password shared with the app)
-- 🪟 A clean menu bar item showing the current track, with the same controls
-- 🔁 Launch at login, one click
-- 🌓 Designed for macOS's widget glass — content stays legible whether the desktop is focused or not
+- 🎧 **Desktop widgets** in small and medium sizes, backed by the current track's artwork. Click a widget to open Spotify.
+- 🎛 **Adjustable look.** Set the widget's transparency and greyscale in Settings, with a live preview.
+- 🖥 **Notch player.** On a MacBook with a notch, hover the notch and a player drops out of it with the cover, track, a scrubber, and controls.
+- 🪟 **Menu bar player.** A popover with the cover, a scrubber, controls, shuffle, and volume. The menu bar item can show the cover and the song title.
+- ⚖️ **Notch or menu bar.** With the notch player on, the menu bar item becomes a plain menu, so the controls aren't in two places.
+- ❤️ **Liked Songs.** Save or remove the current track through Spotify's Web API. Sign-in uses PKCE, and the app never sees your password.
+- 🔁 **Open at login**, with one toggle.
+- 🪶 **Light.** No polling while Spotify is paused or closed, and nothing runs while the notch player is collapsed.
 
 <br>
 
@@ -45,111 +35,97 @@ Spotify Widget is a lightweight, menu-bar-only macOS app (no Dock icon) built wi
 
 | | |
 |---|---|
-| **macOS** | 14.0 (Sonoma) or later |
-| **Spotify** | The Spotify desktop app, installed and running — playback is driven via Apple Events, not the web player |
-| **Xcode** | 15 or later (only needed if you're building from source) |
-| **Account** | Spotify Free or Premium works for playback control; Liked Songs requires being signed into the Spotify desktop app |
+| **macOS** | 14.0 (Sonoma) or later. The notch player needs a Mac with a notch. |
+| **Spotify** | The Spotify desktop app. Playback is driven through Apple Events, so the web player won't work. |
+| **Xcode** | 15 or later |
+| **Apple ID** | Any Apple ID signed in to Xcode. A free account works. |
 
 <br>
 
 ## Install
 
-### Option A — Build with Xcode (recommended)
+There's no download yet. A downloadable app has to be notarized, which needs a paid Apple Developer account, so for now you build it yourself. It takes a few minutes.
 
 1. **Clone the repo**
 
    ```sh
-   git clone https://github.com/geezkiran/Spotify-Widget-MacOS.git
+   git clone https://github.com/NilasMeeder/Spotify-Widget-MacOS.git
    cd Spotify-Widget-MacOS
    ```
 
-2. **Generate the Xcode project**
+2. **Set your team**
 
-   The `.xcodeproj` isn't committed — it's generated from [`project.yml`](project.yml) with [XcodeGen](https://github.com/yonaskolb/XcodeGen).
+   The widget shares data with the app through an App Group, and macOS requires its name to start with your team ID. Your team ID goes in a local file that git ignores:
 
    ```sh
-   brew install xcodegen   # if you don't already have it
-   xcodegen generate
+   cp Config/Local.xcconfig.example Config/Local.xcconfig
    ```
 
-3. **Point signing at your own Apple ID / team**
+   Open `Config/Local.xcconfig` and replace `YOUR_TEAM_ID`. You can find it in Xcode → Settings → Accounts: select your Apple ID, then your team. It's also on [developer.apple.com/account](https://developer.apple.com/account) under Membership.
 
-   `project.yml` is checked in with the original author's team ID and App Group. Widgets share data with the main app through an App Group, so both targets must use **your own** team, and the App Group identifier must match on both.
-
-   Open `project.yml` and update:
-
-   ```yaml
-   settings:
-     base:
-       DEVELOPMENT_TEAM: YOUR_TEAM_ID       # from developer.apple.com/account
-   targets:
-     SpotifyWidget:
-       entitlements:
-         properties:
-           com.apple.security.application-groups:
-             - YOUR_TEAM_ID.com.kiran.spotifywidget
-     SpotifyWidgetExtension:
-       entitlements:
-         properties:
-           com.apple.security.application-groups:
-             - YOUR_TEAM_ID.com.kiran.spotifywidget
-   ```
-
-   Re-run `xcodegen generate` after editing. A free Apple ID works fine for local, unsigned-for-distribution builds — you just need *a* team ID to satisfy App Groups and Automation entitlements.
-
-4. **Open and run**
+3. **Build**
 
    ```sh
    open SpotifyWidget.xcodeproj
    ```
 
-   Select the **SpotifyWidget** scheme, choose **My Mac** as the destination, and hit **Run** (⌘R). The app launches with no Dock icon — look for the music note in your menu bar.
+   Select the **SpotifyWidget** scheme, choose **My Mac**, and press **⌘R** to try it. To keep it for good, choose **Product → Archive**, then **Distribute App → Custom → Copy App**, and move the copied `Spotify Widget.app` to `/Applications`.
 
-5. **Add the widget**
+4. **Add the widget**
 
-   Right-click the desktop (or open Notification Center) → **Edit Widgets** → search **Spotify Widget** → drag in the small or medium size.
+   Right-click the desktop → **Edit Widgets** → search **Spotify Widget** → drag in the small or medium size.
 
-### Option B — Download a build
-
-If a signed release build is attached to this repo's [Releases](../../releases) page, download the `.app`, move it to `/Applications`, and open it. (Building from source is the reliable path until a notarized release is published.)
+> The `.xcodeproj` is generated from [`project.yml`](project.yml) with [XcodeGen](https://github.com/yonaskolb/XcodeGen). After changing `project.yml` or adding files, run `brew install xcodegen` (once), then `xcodegen generate`.
 
 <br>
 
 ## First run
 
-1. Launch **Spotify** desktop app and start playing something.
-2. Launch **Spotify Widget** — you'll see a menu bar icon appear.
-3. macOS will prompt for **Automation access** so the app can read and control Spotify. If you miss the prompt, grant it manually:
+1. Open the **Spotify** desktop app and play something.
+2. Open **Spotify Widget**. An item appears in the menu bar.
+3. macOS asks for **Automation access** so the app can read and control Spotify. If you missed the prompt, go to:
 
    ```
    System Settings → Privacy & Security → Automation → Spotify Widget → Spotify
    ```
 
-   The menu bar item also has a **"Grant Automation Access…"** shortcut when access is missing.
+4. Open **Settings** from the menu bar item to choose between the notch and the menu bar, adjust the widget's look, and turn on Open at login.
 
-4. *(Optional)* Click **Connect Spotify Account…** in the menu bar to enable the Liked Songs heart. This opens Spotify's own sign-in page (PKCE OAuth) — the app never sees your password.
-5. Add the widget to your desktop or Notification Center (see step 5 above) and it will pick up playback automatically.
+### Liked Songs (optional)
+
+The like button needs a sign-in through Spotify's Web API. Spotify only lets an app's own users in while it's in development mode, so create your own Spotify app:
+
+1. Go to [developer.spotify.com/dashboard](https://developer.spotify.com/dashboard) and create an app.
+2. Add the redirect URI `spotifywidget://callback`, and tick **Web API**.
+3. Put its client ID in `Config/Local.xcconfig`:
+
+   ```
+   SPOTIFY_CLIENT_ID = your_client_id
+   ```
+
+4. Build again, then choose **Settings → Spotify account → Connect…**.
 
 <br>
 
 ## How it works
 
 ```
-┌────────────────────┐        AppleScript / Apple Events        ┌──────────────┐
-│   Spotify Widget    │ ────────────────────────────────────▶   │   Spotify.app │
-│  (menu bar process)  │ ◀────────────────────────────────────   └──────────────┘
+┌─────────────────────┐        AppleScript / Apple Events        ┌──────────────┐
+│   Spotify Widget    │ ───────────────────────────────────────▶ │  Spotify.app │
+│ (menu bar + notch)  │ ◀─────────────────────────────────────── └──────────────┘
 └──────────┬──────────┘        now playing · play/pause/skip
            │
            │  App Group (shared container)
            ▼
-┌──────────────────────┐
+┌────────────────────────┐
 │ SpotifyWidgetExtension │   WidgetKit timeline → desktop / Notification Center
-└──────────────────────┘
+└────────────────────────┘
 ```
 
-- The menu bar app polls and observes Spotify's playback-state notifications, then writes a snapshot (track, artwork, position, liked state) into a shared **App Group** container.
-- The widget extension reads that snapshot to render its timeline — it never talks to Spotify directly.
-- Widget button taps (play/pause/skip/like) go through an `AppIntent`, which signals the main app over a local Darwin notification to actually issue the command.
+- The app listens to Spotify's playback notifications and checks in every 15 seconds while music plays. It writes a snapshot (track, artwork, position, liked state) to a shared **App Group** container.
+- The widget reads that snapshot. It never talks to Spotify itself.
+- Widget buttons run an `AppIntent`, which signals the app over a Darwin notification to send the command. Clicking elsewhere on the widget opens the app through a `spotify-widget://` link, and the app brings Spotify forward.
+- The notch player is a borderless panel above the menu bar. A tracking area picks up the hover, so it needs no Accessibility permission.
 - Liked Songs uses Spotify's Web API over OAuth PKCE, since AppleScript can't touch your library.
 
 <br>
@@ -157,26 +133,31 @@ If a signed release build is attached to this repo's [Releases](../../releases) 
 ## Project layout
 
 ```
-SpotifyWidget/                 Menu bar app target
-  SpotifyWidgetApp.swift         App entry point, menu bar UI
-  PlayerController.swift         Orchestrates polling, refresh, commands
+SpotifyWidget/                 Menu bar app
+  SpotifyWidgetApp.swift         App entry point; menu bar item (popover or menu)
+  MenuBarPopover.swift           The popover: cover, scrubber, controls, volume
+  NotchPlayer.swift              The notch player
+  SettingsView.swift             Settings window
+  PlayerController.swift         Refreshing, commands, publishing to the widget
   SpotifyProvider.swift          AppleScript bridge to Spotify.app
-  SpotifyAccount.swift           OAuth (PKCE) + Liked Songs via Web API
-  ArtworkCache.swift             Downloads & caches album art
+  SpotifyAccount.swift           OAuth (PKCE) and Liked Songs via the Web API
+  ArtworkCache.swift             Downloads and caches album art
   CommandListener.swift          Receives commands from the widget
 
-SpotifyWidgetExtension/        WidgetKit extension target
-  NowPlayingWidget.swift         Widget configuration & timeline provider
+SpotifyWidgetExtension/        WidgetKit extension
+  NowPlayingWidget.swift         Widget configuration and timeline provider
   Intents.swift                  AppIntents for play/pause/skip/like
-  Views/NowPlayingView.swift     Widget UI (small & medium layouts)
+  Views/NowPlayingView.swift     Widget UI (small and medium)
 
-Shared/                        Code shared by both targets
-  NowPlaying.swift                Snapshot model written to the App Group
-  SharedStore.swift               App Group read/write helpers
-  SharedViews.swift               SlidingText, LikeIconShape, etc.
-  PlayerCommand.swift             Command enum sent widget → app
-  AppGroup.swift                  App Group identifier
+Shared/                        Used by both
+  NowPlaying.swift               Snapshot written to the App Group
+  SharedStore.swift              App Group read/write helpers
+  SharedViews.swift              SlidingText, LikeIconShape
+  AppSettings.swift              Preferences shared with the widget
+  PlayerCommand.swift            Commands sent from widget to app
+  AppGroup.swift                 App Group identifier
 
+Config/                        Build settings; your own go in Local.xcconfig
 project.yml                    XcodeGen project definition
 ```
 
@@ -186,18 +167,29 @@ project.yml                    XcodeGen project definition
 
 | Symptom | Fix |
 |---|---|
+| Build fails with a signing or App Group error | Check that `Config/Local.xcconfig` exists and holds your team ID |
+| Xcode says the bundle identifier is taken | Change `PRODUCT_BUNDLE_IDENTIFIER` in `project.yml` for both targets (the widget's must start with the app's), then run `xcodegen generate` |
 | Widget shows "Needs access" | Grant Automation access: `System Settings → Privacy & Security → Automation → Spotify Widget → Spotify` |
-| Widget shows "Spotify isn't open" | Launch the Spotify desktop app — the widget doesn't work against the web player |
-| Widget is stuck / not updating | Menu bar → **Reload Widget**, or quit and relaunch Spotify Widget |
-| Build fails with a provisioning/App Group error | Make sure `DEVELOPMENT_TEAM` and the App Group ID in `project.yml` match your own team, then re-run `xcodegen generate` |
-| Liked Songs heart doesn't appear | Click **Connect Spotify Account…** in the menu bar to sign in |
-| "The app owner needs Premium…" error | Spotify's Web API library endpoints require the developer app owner's account to have Premium and the connecting account to be added under User Management in that app's dashboard |
+| Widget shows "Spotify isn't open" | Open the Spotify desktop app |
+| Widget doesn't change after a rebuild | macOS keeps the old widget running. Run `pkill SpotifyWidgetExtension`; it restarts by itself |
+| Widget is stuck | Menu bar → **Reload Widget**, or quit and reopen Spotify Widget |
+| Two Spotify Widgets in the widget gallery | One is Xcode's debug build. Delete it with **Product → Clean Build Folder** |
+| No notch player | It only appears on a screen with a notch, with **Settings → Notch → Player in the notch** turned on |
+| Liked Songs fails to connect | Use your own Spotify app's client ID, see [Liked Songs](#liked-songs-optional) |
+
+<br>
+
+## Credits
+
+Spotify Widget was created by **[Kiran Prakash](https://github.com/geezkiran)**. The original project is at [geezkiran/Spotify-Widget-MacOS](https://github.com/geezkiran/Spotify-Widget-MacOS). It built the widget, the AppleScript bridge, and the Liked Songs sign-in.
+
+This fork is maintained by **[Nilas Meeder](https://github.com/NilasMeeder)**. It adds the notch player, the menu bar popover, the settings window with the widget's look, and click-to-open.
 
 <br>
 
 ## License
 
-MIT — see [LICENSE](LICENSE) if present, or treat as MIT by default.
+MIT, like the original project.
 
 <br>
 
