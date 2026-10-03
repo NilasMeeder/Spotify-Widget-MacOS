@@ -1,3 +1,4 @@
+import CoreImage.CIFilterBuiltins
 import SwiftUI
 import WidgetKit
 
@@ -22,14 +23,14 @@ struct NowPlayingWidget: Widget {
     }
 }
 
-/// The medium layout with a bare progress bar, like the small widget: no elapsed or total time.
+/// Now the same as the medium Now Playing widget. Kept registered so widgets already placed from it keep working.
 struct NowPlayingMinimalWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: AppGroup.minimalWidgetKind, provider: Provider()) { entry in
-            NowPlayingView(entry: entry, showTimes: false)
+            NowPlayingView(entry: entry)
         }
         .configurationDisplayName("Now Playing (Minimal)")
-        .description("What's playing in Spotify, with playback controls and a progress bar without times.")
+        .description("What's playing in Spotify, with playback controls.")
         .supportedFamilies([.systemMedium])
         .contentMarginsDisabled()
     }
@@ -40,6 +41,8 @@ struct NowPlayingEntry: TimelineEntry {
     let snapshot: NowPlaying
     /// Cover art with the scrim baked in, sized to the widget. Nil when there's no artwork.
     let backdrop: NSImage?
+    /// From the app's settings.
+    var look = WidgetLook()
     /// How far through a scroll loop the title is, when it's too long to fit.
     var marquee: Double = 0
 }
@@ -72,7 +75,7 @@ struct Provider: TimelineProvider {
             ended.status = .paused
             ended.position = s.duration
             ended.capturedAt = s.endDate
-            entries.append(NowPlayingEntry(date: s.endDate, snapshot: ended, backdrop: entry.backdrop))
+            entries.append(NowPlayingEntry(date: s.endDate, snapshot: ended, backdrop: entry.backdrop, look: entry.look))
         }
 
         // The host app reloads the timeline whenever playback changes.
@@ -95,10 +98,10 @@ struct Provider: TimelineProvider {
         while loopStart < end {
             for step in 1...steps {
                 let date = loopStart.addingTimeInterval(Double(step - 1) * Marquee.stepDuration)
-                entries.append(NowPlayingEntry(date: date, snapshot: s, backdrop: entry.backdrop, marquee: Double(step) / Double(steps)))
+                entries.append(NowPlayingEntry(date: date, snapshot: s, backdrop: entry.backdrop, look: entry.look, marquee: Double(step) / Double(steps)))
             }
             let restDate = loopStart.addingTimeInterval(Double(steps) * Marquee.stepDuration)
-            entries.append(NowPlayingEntry(date: restDate, snapshot: s, backdrop: entry.backdrop))
+            entries.append(NowPlayingEntry(date: restDate, snapshot: s, backdrop: entry.backdrop, look: entry.look))
             loopStart = restDate.addingTimeInterval(Marquee.pause)
         }
         return entries.filter { $0.date < s.endDate }
@@ -107,8 +110,9 @@ struct Provider: TimelineProvider {
     private func currentEntry(size: CGSize) -> NowPlayingEntry {
         let snapshot = SharedStore.load()
         let artwork = snapshot.artworkFile.flatMap { NSImage(contentsOf: SharedStore.fileURL($0)) }
-        let backdrop = artwork.flatMap { Backdrop.render($0, size: size) }
-        return NowPlayingEntry(date: .now, snapshot: snapshot, backdrop: backdrop)
+        let look = AppSettings.widgetLook
+        let backdrop = artwork.flatMap { Backdrop.render($0, size: size, look: look) }
+        return NowPlayingEntry(date: .now, snapshot: snapshot, backdrop: backdrop, look: look)
     }
 }
 
@@ -116,9 +120,10 @@ struct Provider: TimelineProvider {
 /// non-image content to a tint, so a SwiftUI gradient over the cover would turn into a white wash.
 /// Baking the scrim into a single image keeps the full-bleed look identical in both states.
 enum Backdrop {
-    static func render(_ artwork: NSImage, size: CGSize, scale: CGFloat = 2) -> NSImage? {
+    static func render(_ artwork: NSImage, size: CGSize, look: WidgetLook = .init(), scale: CGFloat = 2) -> NSImage? {
         guard size.width > 0, size.height > 0,
-              let cover = artwork.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let original = artwork.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let cover = filtered(original, look: look),
               let space = CGColorSpace(name: CGColorSpace.sRGB),
               let ctx = CGContext(
                   data: nil,
@@ -132,8 +137,9 @@ enum Backdrop {
         else { return nil }
 
         let w = CGFloat(ctx.width), h = CGFloat(ctx.height)
-        ctx.setFillColor(CGColor(gray: 0.12, alpha: 1))
+        ctx.setFillColor(CGColor(gray: 0.12, alpha: look.backgroundOpacity))
         ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+        ctx.setAlpha(look.coverOpacity)
 
         // Aspect-fill, centered.
         let fill = max(w / CGFloat(cover.width), h / CGFloat(cover.height))
@@ -141,16 +147,30 @@ enum Backdrop {
         ctx.interpolationQuality = .high
         ctx.draw(cover, in: CGRect(x: (w - dw) / 2, y: (h - dh) / 2, width: dw, height: dh))
 
-        // Scrim darkens the bottom where the title and controls sit. CG's origin is bottom-left.
+        // Scrim darkens the bottom where the title and controls sit, at full strength so text stays readable.
+        // CG's origin is bottom-left.
+        ctx.setAlpha(1)
         let black = { (a: CGFloat) in CGColor(gray: 0, alpha: a) }
         if let scrim = CGGradient(
             colorsSpace: space,
-            colors: [black(0.8), black(0.15), black(0.05)] as CFArray,
+            colors: [black(look.scrimStrength), black(0.15), black(0.05)] as CFArray,
             locations: [0, 0.65, 1]
         ) {
             ctx.drawLinearGradient(scrim, start: .zero, end: CGPoint(x: 0, y: h), options: [])
         }
 
         return ctx.makeImage().map { NSImage(cgImage: $0, size: size) }
+    }
+
+    private static let ciContext = CIContext(options: [.cacheIntermediates: false])
+
+    /// Applies greyscale. Returns the image untouched when it's off, skipping Core Image.
+    private static func filtered(_ image: CGImage, look: WidgetLook) -> CGImage? {
+        guard look.greyscale > 0 else { return image }
+        let grey = CIFilter.colorControls()
+        grey.inputImage = CIImage(cgImage: image)
+        grey.saturation = Float(look.saturation)
+        guard let output = grey.outputImage else { return nil }
+        return ciContext.createCGImage(output, from: output.extent)
     }
 }

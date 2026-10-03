@@ -5,15 +5,13 @@ struct NowPlayingView: View {
     @Environment(\.widgetFamily) private var family
     @Environment(\.widgetContentMargins) private var margins
     let entry: NowPlayingEntry
-    /// Whether the medium layout shows elapsed and total time under the progress bar.
-    var showTimes = false
 
     var body: some View {
         Group {
             if entry.snapshot.hasTrack {
                 switch family {
                 case .systemSmall: SmallView(entry: entry)
-                default: MediumView(entry: entry, showTimes: showTimes)
+                default: MediumView(entry: entry)
                 }
             } else {
                 EmptyStateView(status: entry.snapshot.status)
@@ -26,8 +24,8 @@ struct NowPlayingView: View {
         // The cover is content, not the container background: macOS replaces the container
         // background with glass when another app is focused, which would force a different layout.
         .background { BackdropView(image: entry.backdrop) }
-        .containerBackground(for: .widget) { Color(white: 0.12) }
-        .widgetURL(URL(string: "spotify:"))
+        .containerBackground(for: .widget) { Color(white: 0.12).opacity(entry.look.backgroundOpacity) }
+        .widgetURL(AppGroup.openSpotifyURL)
     }
 }
 
@@ -47,15 +45,12 @@ struct SmallView: View {
                 Spacer(minLength: 0)
                 ControlsRow(isPlaying: s.isPlaying, compact: true)
             }
-            ProgressRow(snapshot: s)
-                .padding(.top, 4)
         }
     }
 }
 
 struct MediumView: View {
     let entry: NowPlayingEntry
-    var showTimes = false
 
     var body: some View {
         let s = entry.snapshot
@@ -73,63 +68,7 @@ struct MediumView: View {
                 Spacer(minLength: 0)
                 ControlsRow(isPlaying: s.isPlaying)
             }
-            ProgressRow(snapshot: s, showTimes: showTimes)
-                .padding(.top, 6)
         }
-    }
-}
-
-struct ProgressRow: View {
-    let snapshot: NowPlaying
-    var showTimes = false
-
-    var body: some View {
-        let s = snapshot
-        let live = s.isPlaying && s.duration > 0 && s.endDate > .now
-        VStack(spacing: 2) {
-            // Both variants use the same label-less form and a fixed height so the row doesn't shift between states.
-            Group {
-                // Timer-driven views animate on their own, so progress costs no widget reloads.
-                if live {
-                    ProgressView(timerInterval: s.startDate...s.endDate, countsDown: false) {
-                        EmptyView()
-                    } currentValueLabel: {
-                        EmptyView()
-                    }
-                } else {
-                    ProgressView(value: min(s.position, s.duration), total: max(s.duration, 1)) {
-                        EmptyView()
-                    } currentValueLabel: {
-                        EmptyView()
-                    }
-                }
-            }
-            .labelsHidden()
-            .frame(height: 4)
-
-            if showTimes {
-                HStack {
-                    // Only use a timer view while playing; a paused timer still redraws every frame.
-                    if live {
-                        Text(timerInterval: s.startDate...s.endDate, countsDown: false)
-                    } else {
-                        Text(Self.format(s.position))
-                    }
-                    Spacer()
-                    Text(Self.format(s.duration))
-                }
-                .font(.caption2.monospacedDigit())
-                .opacity(0.7)
-            }
-        }
-        .progressViewStyle(.linear)
-        .tint(.white)
-        .widgetAccentable()
-    }
-
-    private static func format(_ seconds: TimeInterval) -> String {
-        let total = Int(seconds.rounded(.down))
-        return String(format: "%d:%02d", total / 60, total % 60)
     }
 }
 

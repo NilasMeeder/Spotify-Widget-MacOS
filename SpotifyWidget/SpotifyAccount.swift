@@ -7,7 +7,8 @@ import os
 /// Playback stays on AppleScript, whose dictionary can't save tracks.
 @MainActor
 final class SpotifyAccount: ObservableObject {
-    private static let clientID = "c73a5b6bf7df480bb07d1ad126de7ae9"
+    /// Set at build time; see Config/Base.xcconfig.
+    private static let clientID = Bundle.main.object(forInfoDictionaryKey: "SpotifyClientID") as? String ?? ""
     private static let callbackScheme = "spotifywidget"
     private static let redirectURI = "\(callbackScheme)://callback"
     // The consolidated /me/library endpoints list the follow scopes as required too.

@@ -8,6 +8,8 @@ final class PlayerController: ObservableObject {
     @Published private(set) var snapshot: NowPlaying = .notRunning
     /// The current track's cover, for the menu bar popover.
     @Published private(set) var artworkImage: NSImage?
+    /// The cover shrunk to menu bar size. Rendered once per track.
+    @Published private(set) var menuBarArtwork: NSImage?
 
     let account = SpotifyAccount()
     private let provider: MusicProvider = SpotifyProvider()
@@ -20,6 +22,10 @@ final class PlayerController: ObservableObject {
     private var likedCache: [String: (liked: Bool, fetchedAt: Date)] = [:]
     /// The last skip requested from the widget. A track change shortly after it is attributed to that skip.
     private var pendingSkip: (direction: SkipDirection, at: Date)?
+    /// The last seek. Spotify can report the old position for a moment afterwards.
+    private var pendingSeek: (position: TimeInterval, at: Date)?
+    /// Bumped by each refresh. Refreshes overlap when skipping quickly; only the newest may publish.
+    private var refreshGeneration = 0
 
     init() {
         observers.append(DistributedNotificationCenter.default().addObserver(
@@ -42,8 +48,13 @@ final class PlayerController: ObservableObject {
         }
 
         // Catches seeks and anything Spotify doesn't notify about. Cheap: only real changes reload the widget.
+        // Skipped while paused or closed: nothing moves on its own then, and Spotify's notification covers
+        // play, pause and track changes, so there's no need to wake Spotify every 15 seconds.
         pollTimer = Timer.scheduledTimer(withTimeInterval: 15, repeats: true) { [weak self] _ in
-            Task { @MainActor in await self?.refresh() }
+            Task { @MainActor in
+                guard let self, self.snapshot.isPlaying else { return }
+                await self.refresh()
+            }
         }
 
         account.onChange = { [weak self] in
@@ -57,11 +68,16 @@ final class PlayerController: ObservableObject {
     }
 
     func refresh() async {
+        refreshGeneration += 1
+        let generation = refreshGeneration
         var next = await provider.snapshot()
         if next.hasTrack, let remote = next.artworkRemoteURL {
             next.artworkFile = await artwork.localFile(trackID: next.trackID, remoteURL: remote)
         }
         next.liked = await likedState(for: next)
+        // A newer refresh started while this one waited, so this snapshot may already be out of date.
+        guard generation == refreshGeneration else { return }
+        holdSeekPosition(&next)
         next.skipDirection = skipDirection(for: next)
         let last = lastPublished ?? snapshot
         let titleChanged = next.hasTrack && last.hasTrack && last.title != next.title
@@ -72,18 +88,23 @@ final class PlayerController: ObservableObject {
         next.artistChanges = last.artistChanges + (artistChanged ? 1 : 0)
         if next.artworkFile != snapshot.artworkFile || (artworkImage == nil && next.artworkFile != nil) {
             artworkImage = next.artworkFile.flatMap { NSImage(contentsOf: SharedStore.fileURL($0)) }
+            menuBarArtwork = artworkImage.flatMap(Self.menuBarImage)
         }
         snapshot = next
         publishIfNeeded(next)
     }
 
-    func seek(to position: TimeInterval) async {
+    /// Moves the bar right away, in the same update that ends the drag, so it doesn't flash back to the old spot.
+    func seek(to position: TimeInterval) {
         guard snapshot.hasTrack else { return }
-        // Move the bar right away; Spotify takes a moment to report the new position.
-        snapshot.position = min(max(0, position), snapshot.duration)
+        let target = min(max(0, position), snapshot.duration)
+        snapshot.position = target
         snapshot.capturedAt = .now
-        await provider.seek(to: position)
-        await refresh()
+        pendingSeek = (target, .now)
+        Task {
+            await provider.seek(to: target)
+            await refresh()
+        }
     }
 
     func setShuffle(_ enabled: Bool) async {
@@ -111,6 +132,21 @@ final class PlayerController: ObservableObject {
         // The widget may have written an optimistic state; force the real one to be written back.
         lastPublished = nil
         await refresh()
+    }
+
+    /// Shortly after a seek, a position far from where the seek went is Spotify lagging behind, not a real jump.
+    private func holdSeekPosition(_ next: inout NowPlaying) {
+        guard let seek = pendingSeek else { return }
+        let elapsed = -seek.at.timeIntervalSinceNow
+        guard elapsed < 2, next.trackID == snapshot.trackID else {
+            pendingSeek = nil
+            return
+        }
+        let expected = seek.position + (next.isPlaying ? elapsed : 0)
+        if abs(next.position(at: .now) - expected) > 1.5 {
+            next.position = expected
+            next.capturedAt = .now
+        }
     }
 
     /// A new track takes the direction of a recent skip, or forward if it just played on; the same track keeps its direction.
@@ -160,6 +196,25 @@ final class PlayerController: ObservableObject {
             NSLog("Open at Login change failed: \(error)")
         }
         return SMAppService.mainApp.status == .enabled
+    }
+
+    /// A small rounded bitmap, so the menu bar doesn't hold on to or redraw the full-size cover.
+    private static func menuBarImage(_ cover: NSImage) -> NSImage? {
+        let points: CGFloat = 18, scale: CGFloat = 2
+        guard let source = cover.cgImage(forProposedRect: nil, context: nil, hints: nil),
+              let ctx = CGContext(
+                  data: nil, width: Int(points * scale), height: Int(points * scale),
+                  bitsPerComponent: 8, bytesPerRow: 0,
+                  space: CGColorSpace(name: CGColorSpace.sRGB)!,
+                  bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+              )
+        else { return nil }
+        let rect = CGRect(x: 0, y: 0, width: ctx.width, height: ctx.height)
+        ctx.addPath(CGPath(roundedRect: rect, cornerWidth: 4 * scale, cornerHeight: 4 * scale, transform: nil))
+        ctx.clip()
+        ctx.interpolationQuality = .high
+        ctx.draw(source, in: rect)
+        return ctx.makeImage().map { NSImage(cgImage: $0, size: NSSize(width: points, height: points)) }
     }
 
     private func publishIfNeeded(_ next: NowPlaying) {

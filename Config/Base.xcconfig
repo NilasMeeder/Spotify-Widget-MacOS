@@ -1,0 +1,11 @@
+// Shared by both targets. Machine-specific values go in Local.xcconfig, which git ignores:
+// copy Local.xcconfig.example to Local.xcconfig and fill it in.
+
+// The original project's Spotify app. Liked Songs only works with it for accounts its owner has added,
+// so set your own in Local.xcconfig.
+SPOTIFY_CLIENT_ID = c73a5b6bf7df480bb07d1ad126de7ae9
+
+#include? "Local.xcconfig"
+
+// Widgets share data with the app through this group, and macOS requires it to start with the team ID.
+APP_GROUP_ID = $(DEVELOPMENT_TEAM).com.kiran.spotifywidget

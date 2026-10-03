@@ -1,4 +1,3 @@
-import ServiceManagement
 import SwiftUI
 import WidgetKit
 
@@ -15,7 +14,7 @@ struct MenuBarPopover: View {
                 Artwork(image: controller.artworkImage)
                 TrackInfo(snapshot: s)
                 Scrubber(snapshot: s) { position in
-                    Task { await controller.seek(to: position) }
+                    controller.seek(to: position)
                 }
                 TransportControls(snapshot: s)
             } else {
@@ -85,8 +84,10 @@ private struct TrackInfo: View {
 }
 
 /// Progress bar with elapsed and remaining time. Drag or click to seek.
-private struct Scrubber: View {
+struct Scrubber: View {
     let snapshot: NowPlaying
+    /// Times on either side of the bar instead of under it.
+    var inline = false
     let seek: (TimeInterval) -> Void
     /// Where the user is dragging to, as a fraction; nil when not dragging.
     @State private var dragging: Double?
@@ -96,22 +97,39 @@ private struct Scrubber: View {
             let s = snapshot
             let duration = max(s.duration, 1)
             let position = dragging.map { $0 * duration } ?? s.position(at: context.date)
-            VStack(spacing: 4) {
-                ThinSlider(value: position / duration) { fraction in
-                    dragging = fraction
-                } onCommit: { fraction in
-                    dragging = nil
-                    seek(fraction * duration)
+            let slider = ThinSlider(value: position / duration) { fraction in
+                dragging = fraction
+            } onCommit: { fraction in
+                dragging = nil
+                seek(fraction * duration)
+            }
+            let elapsed = Self.time(Self.format(position))
+            let remaining = Self.time("-" + Self.format(max(0, s.duration - position)))
+            Group {
+                if inline {
+                    HStack(spacing: 10) {
+                        elapsed
+                        slider
+                        remaining
+                    }
+                } else {
+                    VStack(spacing: 4) {
+                        slider
+                        HStack {
+                            elapsed
+                            Spacer()
+                            remaining
+                        }
+                    }
                 }
-                HStack {
-                    Text(Self.format(position))
-                    Spacer()
-                    Text("-" + Self.format(max(0, s.duration - position)))
-                }
-                .font(.caption2.monospacedDigit())
-                .foregroundStyle(.secondary)
             }
         }
+    }
+
+    private static func time(_ text: String) -> some View {
+        Text(text)
+            .font(.caption2.monospacedDigit())
+            .foregroundStyle(.secondary)
     }
 
     static func format(_ seconds: TimeInterval) -> String {
@@ -120,7 +138,7 @@ private struct Scrubber: View {
     }
 }
 
-private struct TransportControls: View {
+struct TransportControls: View {
     @EnvironmentObject private var controller: PlayerController
     let snapshot: NowPlaying
 
@@ -197,7 +215,7 @@ private struct BottomBar: View {
             } else {
                 Spacer()
             }
-            SettingsMenu(account: controller.account)
+            SettingsMenu()
         }
     }
 
@@ -210,28 +228,15 @@ private struct BottomBar: View {
 }
 
 private struct SettingsMenu: View {
-    @EnvironmentObject private var controller: PlayerController
-    @ObservedObject var account: SpotifyAccount
-    @AppStorage(MenuBarLabel.showTitleKey) private var showTitle = true
-    @State private var openAtLogin = SMAppService.mainApp.status == .enabled
+    @EnvironmentObject private var settings: SettingsWindow
+    /// Sits in the popover, so its window is the popover's.
+    @State private var anchor = NSView()
 
     var body: some View {
         Menu {
-            if account.isConnected {
-                Button("Disconnect Spotify Account") { account.disconnect() }
-            } else {
-                Button("Connect Spotify Account…") { account.connect() }
+            AppMenuItems(settings: settings) {
+                fadeOut(anchor.window)
             }
-            Divider()
-            Toggle("Show Song in Menu Bar", isOn: $showTitle)
-            Toggle("Open at Login", isOn: $openAtLogin)
-                .onChange(of: openAtLogin) { _, enabled in
-                    openAtLogin = controller.setOpenAtLogin(enabled)
-                }
-            Button("Reload Widget") { WidgetCenter.shared.reloadAllTimelines() }
-            Divider()
-            Button("Quit Spotify Widget") { NSApp.terminate(nil) }
-                .keyboardShortcut("q")
         } label: {
             Image(systemName: "gearshape")
         }
@@ -239,6 +244,47 @@ private struct SettingsMenu: View {
         .menuIndicator(.hidden)
         .fixedSize()
         .help("Settings")
+        .background(ViewHost(view: anchor))
+    }
+
+    /// The popover would only close once the settings window is clicked; get it out of the way now.
+    private func fadeOut(_ window: NSWindow?) {
+        guard let window else { return }
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.15
+            window.animator().alphaValue = 0
+        } completionHandler: {
+            MainActor.assumeIsolated {
+                window.close()
+                window.alphaValue = 1
+            }
+        }
+    }
+}
+
+private struct ViewHost: NSViewRepresentable {
+    let view: NSView
+
+    func makeNSView(context: Context) -> NSView { view }
+    func updateNSView(_ nsView: NSView, context: Context) {}
+}
+
+/// Settings, widget reload and quit. The popover's gear menu, and the whole menu bar menu when the notch has the player.
+struct AppMenuItems: View {
+    let settings: SettingsWindow
+    /// Runs before the settings window opens.
+    var beforeSettings: () -> Void = {}
+
+    var body: some View {
+        Button("Settings…") {
+            beforeSettings()
+            settings.show()
+        }
+        .keyboardShortcut(",")
+        Button("Reload Widget") { WidgetCenter.shared.reloadAllTimelines() }
+        Divider()
+        Button("Quit Spotify Widget") { NSApp.terminate(nil) }
+            .keyboardShortcut("q")
     }
 }
 
@@ -277,7 +323,7 @@ private struct EmptyState: View {
 }
 
 /// A borderless symbol button that brightens on hover.
-private struct IconButton<Label: View>: View {
+struct IconButton<Label: View>: View {
     let help: String
     var tint: Color?
     let action: () -> Void
@@ -298,7 +344,7 @@ private struct IconButton<Label: View>: View {
 }
 
 /// A slim track that thickens on hover, used for both seeking and volume.
-private struct ThinSlider: View {
+struct ThinSlider: View {
     let value: Double
     let onChange: (Double) -> Void
     let onCommit: (Double) -> Void
@@ -332,17 +378,25 @@ private struct ThinSlider: View {
     }
 }
 
-/// The menu bar item itself: a note, plus the current song when enabled.
+/// The menu bar item itself: the cover and the current song, as enabled in settings.
 struct MenuBarLabel: View {
-    static let showTitleKey = "showTitleInMenuBar"
     @ObservedObject var controller: PlayerController
-    @AppStorage(showTitleKey) private var showTitle = true
+    @AppStorage(AppSettings.menuBarShowsCoverKey, store: AppSettings.store) private var showsCover = true
+    @AppStorage(AppSettings.menuBarShowsTitleKey, store: AppSettings.store) private var showsTitle = true
 
     var body: some View {
         let s = controller.snapshot
-        Image(systemName: s.isPlaying ? "music.note" : "music.note.list")
-        if showTitle, s.hasTrack {
-            Text(Self.shortened(s.title))
+        let cover = showsCover && s.hasTrack ? controller.menuBarArtwork : nil
+        let title = showsTitle && s.hasTrack ? Self.shortened(s.title) : nil
+        if let cover {
+            Image(nsImage: cover)
+        }
+        if let title {
+            Text(title)
+        }
+        // The item would vanish with nothing in it, e.g. while Spotify is closed.
+        if cover == nil, title == nil {
+            Image(systemName: "music.note")
         }
     }
 

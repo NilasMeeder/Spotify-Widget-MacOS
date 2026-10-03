@@ -4,9 +4,11 @@ options:
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
+configFiles:
+  Debug: Config/Base.xcconfig
+  Release: Config/Base.xcconfig
 settings:
   base:
-    DEVELOPMENT_TEAM: YB8CN9L39G
     CODE_SIGN_STYLE: Automatic
     SWIFT_VERSION: "5.0"
     MARKETING_VERSION: "0.1.0"
@@ -29,12 +31,18 @@ targets:
         LSUIElement: true
         LSApplicationCategoryType: public.app-category.music
         NSAppleEventsUsageDescription: Spotify Widget reads what Spotify is playing and controls playback for the desktop widget.
+        AppGroupID: $(APP_GROUP_ID)
+        SpotifyClientID: $(SPOTIFY_CLIENT_ID)
+        CFBundleURLTypes:
+          - CFBundleURLName: com.kiran.spotifywidget.open
+            CFBundleURLSchemes:
+              - spotify-widget
     entitlements:
       path: SpotifyWidget/SpotifyWidget.entitlements
       properties:
         com.apple.security.automation.apple-events: true
         com.apple.security.application-groups:
-          - YB8CN9L39G.com.kiran.spotifywidget
+          - $(APP_GROUP_ID)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kiran.spotifywidget
@@ -51,12 +59,13 @@ targets:
         CFBundleDisplayName: Spotify Widget
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
+        AppGroupID: $(APP_GROUP_ID)
     entitlements:
       path: SpotifyWidgetExtension/SpotifyWidgetExtension.entitlements
       properties:
         com.apple.security.app-sandbox: true
         com.apple.security.application-groups:
-          - YB8CN9L39G.com.kiran.spotifywidget
+          - $(APP_GROUP_ID)
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.kiran.spotifywidget.widget
