@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppGroup {
-    static let id = "RJ4NVX26QT.com.kiran.spotifywidget"
+    static let id = "YB8CN9L39G.com.kiran.spotifywidget"
     static let widgetKind = "NowPlayingWidget"
     static let minimalWidgetKind = "NowPlayingMinimalWidget"
 
