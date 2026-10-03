@@ -25,6 +25,8 @@ struct NowPlaying: Codable, Equatable {
     var artworkFile: String?
     var shuffle = false
     var repeating = false
+    /// Spotify's own volume, 0–100. Nil when unknown.
+    var volume: Int?
     /// Whether the track is in Liked Songs. Nil when no account is connected, the state is unknown,
     /// or the track can't be saved (local files); the widget hides the heart then.
     var liked: Bool?

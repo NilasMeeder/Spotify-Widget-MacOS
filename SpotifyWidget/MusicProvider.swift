@@ -4,4 +4,8 @@ import Foundation
 protocol MusicProvider {
     func snapshot() async -> NowPlaying
     func perform(_ command: PlayerCommand) async
+    func seek(to position: TimeInterval) async
+    func setShuffle(_ enabled: Bool) async
+    /// 0–100.
+    func setVolume(_ volume: Int) async
 }

@@ -6,6 +6,8 @@ import WidgetKit
 @MainActor
 final class PlayerController: ObservableObject {
     @Published private(set) var snapshot: NowPlaying = .notRunning
+    /// The current track's cover, for the menu bar popover.
+    @Published private(set) var artworkImage: NSImage?
 
     let account = SpotifyAccount()
     private let provider: MusicProvider = SpotifyProvider()
@@ -68,8 +70,31 @@ final class PlayerController: ObservableObject {
         let artistChanged = next.hasTrack && last.hasTrack && last.artist != next.artist
         next.previousArtist = artistChanged ? last.artist : last.previousArtist
         next.artistChanges = last.artistChanges + (artistChanged ? 1 : 0)
+        if next.artworkFile != snapshot.artworkFile || (artworkImage == nil && next.artworkFile != nil) {
+            artworkImage = next.artworkFile.flatMap { NSImage(contentsOf: SharedStore.fileURL($0)) }
+        }
         snapshot = next
         publishIfNeeded(next)
+    }
+
+    func seek(to position: TimeInterval) async {
+        guard snapshot.hasTrack else { return }
+        // Move the bar right away; Spotify takes a moment to report the new position.
+        snapshot.position = min(max(0, position), snapshot.duration)
+        snapshot.capturedAt = .now
+        await provider.seek(to: position)
+        await refresh()
+    }
+
+    func setShuffle(_ enabled: Bool) async {
+        snapshot.shuffle = enabled
+        await provider.setShuffle(enabled)
+        await refresh()
+    }
+
+    func setVolume(_ volume: Int) async {
+        snapshot.volume = volume
+        await provider.setVolume(volume)
     }
 
     func perform(_ command: PlayerCommand) async {

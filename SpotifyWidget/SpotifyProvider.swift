@@ -12,7 +12,7 @@ final class SpotifyProvider: MusicProvider {
         set playerState to player state as string
         if playerState is "stopped" then return {playerState}
         set t to current track
-        return {playerState, id of t, name of t, artist of t, album of t, duration of t, player position, artwork url of t, shuffling, repeating}
+        return {playerState, id of t, name of t, artist of t, album of t, duration of t, player position, artwork url of t, shuffling, repeating, sound volume}
     end tell
     """
 
@@ -50,7 +50,8 @@ final class SpotifyProvider: MusicProvider {
                 capturedAt: .now,
                 artworkRemoteURL: list.atIndex(8)?.stringValue,
                 shuffle: list.atIndex(9)?.booleanValue ?? false,
-                repeating: list.atIndex(10)?.booleanValue ?? false
+                repeating: list.atIndex(10)?.booleanValue ?? false,
+                volume: list.numberOfItems >= 11 ? list.atIndex(11).map { Int($0.int32Value) } : nil
             )
         }
     }
@@ -64,7 +65,24 @@ final class SpotifyProvider: MusicProvider {
         case .previous: verb = "previous track"
         case .toggleLike: return // Web API only; see SpotifyAccount.
         }
-        _ = await run("tell application id \"\(Self.bundleID)\" to \(verb)")
+        await tell(verb)
+    }
+
+    func seek(to position: TimeInterval) async {
+        await tell("set player position to \(max(0, position))")
+    }
+
+    func setShuffle(_ enabled: Bool) async {
+        await tell("set shuffling to \(enabled)")
+    }
+
+    func setVolume(_ volume: Int) async {
+        await tell("set sound volume to \(min(100, max(0, volume)))")
+    }
+
+    private func tell(_ statement: String) async {
+        guard isRunning else { return }
+        _ = await run("tell application id \"\(Self.bundleID)\" to \(statement)")
     }
 
     private func run(_ source: String) async -> ScriptResult {

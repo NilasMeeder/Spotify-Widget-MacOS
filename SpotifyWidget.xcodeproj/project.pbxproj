@@ -23,6 +23,7 @@
 		B57DCD1AE6DB085CB003F9F1 /* SpotifyWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7C97AAA465BBC26C3702F7A9 /* SpotifyWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		C9D087A40D46021D56B2F597 /* PlayerCommand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6329605FCDA85B8938B59D92 /* PlayerCommand.swift */; };
 		D085D5B5EC6CAE88E188F524 /* SharedViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8589465C1D82E544469DED90 /* SharedViews.swift */; };
+		D9456117B451F2C30C8DA331 /* MenuBarPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF9A89CD3B715EC29195B198 /* MenuBarPopover.swift */; };
 		DF6E8898A1B3D7CDCF883C89 /* SpotifyProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7ED8BD0B25FC0903A21F484 /* SpotifyProvider.swift */; };
 		E3ACA90AE080975B0BBEA637 /* NowPlaying.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DABBCD39416B6990CA21BF6 /* NowPlaying.swift */; };
 		EC24B68AC87F0B725B88B147 /* ArtworkCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7478D61B3A15FD990D782AE7 /* ArtworkCache.swift */; };
@@ -72,6 +73,7 @@
 		909AAB438406AADD4FB81226 /* SpotifyWidget.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = SpotifyWidget.entitlements; sourceTree = "<group>"; };
 		9C29FF4773E7E60D30725F18 /* PlayerController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerController.swift; sourceTree = "<group>"; };
 		A98A20229B35930521486FEA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		AF9A89CD3B715EC29195B198 /* MenuBarPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarPopover.swift; sourceTree = "<group>"; };
 		BEE96CB6B7C1CC6838945FD4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D7ED8BD0B25FC0903A21F484 /* SpotifyProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyProvider.swift; sourceTree = "<group>"; };
 		DB43E8CD43C5BEF2871C13FB /* SpotifyAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpotifyAccount.swift; sourceTree = "<group>"; };
@@ -126,6 +128,7 @@
 				7478D61B3A15FD990D782AE7 /* ArtworkCache.swift */,
 				F86C48D4EDDEB10F4ACF2C1E /* CommandListener.swift */,
 				A98A20229B35930521486FEA /* Info.plist */,
+				AF9A89CD3B715EC29195B198 /* MenuBarPopover.swift */,
 				6C43253AC67CEE3FC180C6D2 /* MusicProvider.swift */,
 				9C29FF4773E7E60D30725F18 /* PlayerController.swift */,
 				DB43E8CD43C5BEF2871C13FB /* SpotifyAccount.swift */,
@@ -232,6 +235,7 @@
 				F74FE60C7320BD4D101E3C58 /* AppGroup.swift in Sources */,
 				EC24B68AC87F0B725B88B147 /* ArtworkCache.swift in Sources */,
 				25AF5AF96799EDFAAFB89AFA /* CommandListener.swift in Sources */,
+				D9456117B451F2C30C8DA331 /* MenuBarPopover.swift in Sources */,
 				3D87E98EF586C5D6C8B71404 /* MusicProvider.swift in Sources */,
 				EE0555FBCBC219C4340A32CC /* NowPlaying.swift in Sources */,
 				A8B3698CDCD9953686599A33 /* PlayerCommand.swift in Sources */,
