@@ -1,6 +1,6 @@
 <div align="center">
 
-# ◈ Spotify Widget
+# Spotify Widget
 
 **A native macOS widget, menu bar player, and notch player for Spotify.**
 
@@ -12,9 +12,9 @@ Now-playing artwork as the backdrop, sliding track titles, playback controls, an
 
 <br>
 
-<img src="docs/images/widget-color.png" width="352" alt="The medium desktop widget with the album cover as its background">
+<img src="docs/images/widget-color.png" width="340" alt="The medium desktop widget with the album cover as its background">
 &nbsp;
-<img src="docs/images/notch-player.png" width="380" alt="The player that drops out of the notch">
+<img src="docs/images/notch-player.png" width="432" alt="The player that drops out of the notch">
 
 </div>
 
@@ -30,51 +30,55 @@ Spotify Widget is a lightweight, menu-bar-only macOS app (no Dock icon) built wi
 
 ## Features
 
-### 🎧 Desktop widget
+### Desktop widget
 
 The widget comes in small and medium sizes. The current track's artwork fills the background, long titles slide by, and the buttons skip and pause without opening anything. Click anywhere else on the widget to open Spotify.
 
 Its look is yours to set: turn up **Transparency** to let your wallpaper through, or **Greyscale** to drain the color from the cover.
 
 <div align="center">
-<img src="docs/images/widget-color.png" width="352" alt="Widget in full color">
-&nbsp;
-<img src="docs/images/widget-greyscale.png" width="346" alt="The same widget with transparency and greyscale turned up">
+<img src="docs/images/widget-color.png" width="260" alt="The widget in full color">
+<img src="docs/images/widget-transparent.png" width="260" alt="The widget with transparency turned up">
+<img src="docs/images/widget-greyscale.png" width="260" alt="The widget with transparency and greyscale turned up">
 <br>
-<sub>Full color (left) and with transparency and greyscale turned up (right)</sub>
+<sub>Full color · Transparency · Transparency and greyscale</sub>
 </div>
 
-### 🖥 Notch player
+### Notch player
 
 On a MacBook with a notch, rest the pointer on the notch and a player drops out of it: cover, title, a scrubber you can drag, and play/pause, skip, and shuffle. Move the pointer away and it tucks itself back in. While it's closed, it uses no resources.
 
 <div align="center">
-<img src="docs/images/notch-player.png" width="380" alt="The notch player">
+<img src="docs/images/notch-player.png" width="451" alt="The notch player">
 </div>
 
-### 🪟 Menu bar player
+### Menu bar player
 
 On a Mac without a notch, or with the notch player turned off, the menu bar item opens a player instead: a large cover, a scrubber, the controls, shuffle, and volume. The gear opens Settings. The menu bar item itself can show the cover and the song title.
 
 With the notch player on, the menu bar item becomes a plain menu (Settings, Reload Widget, Quit), so the controls aren't in two places.
 
 <div align="center">
-<img src="docs/images/menu-bar-popover.png" width="279" alt="The menu bar player">
+<img src="docs/images/menu-bar-popover.png" width="366" alt="The menu bar player">
 </div>
 
-### ⚙️ Settings
+### Settings
 
 Everything in one window: what the menu bar shows, notch or menu bar, the widget's transparency and greyscale with a live preview, Open at login, and the Spotify account for Liked Songs.
 
 <div align="center">
-<img src="docs/images/settings.png" width="380" alt="The settings window">
+<img src="docs/images/settings.png" width="300" alt="The settings window with the default widget look">
+&nbsp;
+<img src="docs/images/settings-look.png" width="300" alt="The settings window with transparency and greyscale turned up">
+<br>
+<sub>The preview shows the widget's look as you drag the sliders</sub>
 </div>
 
-### And also
+### Also included
 
-- ❤️ **Liked Songs.** Save or remove the current track. Sign-in goes through Spotify itself (OAuth with PKCE), and the app never sees your password.
-- 🔁 **Open at login**, with one toggle.
-- 🪶 **Light.** No polling while Spotify is paused or closed, and nothing runs while the notch player is closed.
+- **Liked Songs.** Save or remove the current track. Sign-in goes through Spotify itself (OAuth with PKCE), and the app never sees your password.
+- **Open at login**, with one toggle.
+- **Lightweight.** No polling while Spotify is paused or closed, and nothing runs while the notch player is closed.
 
 <br>
 
