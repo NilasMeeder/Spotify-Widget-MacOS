@@ -312,7 +312,7 @@ This fork is maintained by **[Nilas Meeder](https://github.com/NilasMeeder)**. I
 
 ## License
 
-MIT, like the original project.
+MIT, like the original project. See [LICENSE](LICENSE).
 
 <br>
 
